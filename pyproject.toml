@@ -1,0 +1,72 @@
+[project]
+name = "ksqldb_client"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[tool.poetry]
+name = "ksqldb_client"
+version = "0.1.0"
+description = ""
+authors = ["Antonio Milán <antonio.milan@nextdigital.es>"]
+readme = "README.md"
+packages = []
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+httpx = {extras = ["http2"], version = "^0.27.0"}
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.3.0"
+mypy = "^1.8.0"
+pytest = "^7.4.3"
+ipykernel = "^6.29.3"
+
+[tool.ruff]
+line-length = 140
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D211",
+    "D213",
+    "D100",
+    "D101",
+    "D103",
+    "D104",
+    "D107",
+    "B008",
+    "FIX002",
+    "TD002",
+    "TD003",
+    "ANN101",
+    "ANN204",
+    "UP035",
+]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S101",
+    "ANN201",
+    "ARG001",
+    "D102",
+    "SLF001",
+]
+"*.ipynb" = [
+    "B018",
+    "E402",
+    "E501",
+    "SLF001",
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 140
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
