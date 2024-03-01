@@ -1,32 +1,20 @@
 import warnings
-from functools import wraps
-from typing import Any, Callable, ClassVar
+from typing import Any, ClassVar
 
 import httpx
 
-from .exceptions import APIError
+from ksqldb_client.models.status_response import StatusResponse
 
-
-def _raise_api_error_if_not_200(function: Callable[..., httpx.Response]) -> Callable[..., dict]:
-    @wraps(function)
-    def wrapper(*args: list, **kwargs: dict) -> dict:
-        result = function(*args, **kwargs)
-        if result.status_code != 200:  # noqa: PLR2004
-            raise APIError(
-                (
-                    result.json()
-                    if "application/json" in result.headers["content-type"]
-                    else {"error_code": result.status_code, "message": result.text}
-                ),
-            )
-        return result.json()
-
-    return wrapper
+from .decorators import ParseResponse
+from .models.info_response import InfoResponse
+from .models.ksql_response import KSqlResponse
+from .models.query_response import QueryResponse
 
 
 class KSqlDBClient:
     _headers: ClassVar = {
         "Accept": "application/vnd.ksql.v1+json",
+        "Content-Type": "application/json",
     }
 
     def __init__(
@@ -43,11 +31,11 @@ class KSqlDBClient:
 
         self._client = httpx.Client(http2=True, timeout=self.timeout_in_seconds)
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(KSqlResponse)
     def ksql(
         self,
-        *,
         ksql: str,
+        *,
         stream_properties: dict | None = None,
         session_variables: dict | None = None,
         command_sequence_number: int | None = None,
@@ -87,11 +75,11 @@ class KSqlDBClient:
             json=body,
         )
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(QueryResponse)
     def query(
         self,
-        *,
         ksql: str,
+        *,
         stream_properties: dict | None = None,
     ) -> httpx.Response:
         """Run a SELECT statement and stream back the results.
@@ -131,13 +119,14 @@ This endpoint was proposed to be deprecated as part of KLIP-15 in favor of the n
                 "ksql": ksql,
                 "streamsProperties": stream_properties or {},
             },
+            headers=self._headers,
         )
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(QueryResponse)
     def query_stream(
         self,
-        *,
         sql: str,
+        *,
         properties: dict | None = None,
         session_variables: dict | None = None,
     ) -> httpx.Response:
@@ -177,9 +166,10 @@ This endpoint was proposed to be deprecated as part of KLIP-15 in favor of the n
             json=body,
         )
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(None)
     def close_query(
         self,
+        *,
         query_id: str,
     ) -> httpx.Response:
         """Terminate a running query."""
@@ -188,8 +178,8 @@ This endpoint was proposed to be deprecated as part of KLIP-15 in favor of the n
             json={"queryId": query_id},
         )
 
-    @_raise_api_error_if_not_200
-    def status(self, command_id: str | None = None) -> httpx.Response:
+    @ParseResponse(StatusResponse)
+    def status(self, command_id: str) -> httpx.Response:
         """Get the current command status for a CREATE, DROP, or TERMINATE statement.
 
         Args:
@@ -214,20 +204,16 @@ This endpoint was proposed to be deprecated as part of KLIP-15 in favor of the n
         """
         return self._client.get(f"{self.url}/status{f'/{command_id}' if command_id is not None else ''}")
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(InfoResponse)
     def info(self) -> httpx.Response:
         """Get information about the status of a ksqlDB Server.
 
         This can be useful for health checks and troubleshooting.
 
-        Returns
-        -------
-            dict: The status information of the ksqlDB Server.
-
         """
         return self._client.get(f"{self.url}/info")
 
-    @_raise_api_error_if_not_200
+    @ParseResponse(None)
     def cluster_status(self) -> httpx.Response:
         """Get information about the status of all ksqlDB servers in a ksqlDB cluster.
 
@@ -256,4 +242,4 @@ This endpoint was proposed to be deprecated as part of KLIP-15 in favor of the n
             in the cluster.
 
         """
-        return self._client.get(f"{self.url}/cluster-status")
+        raise NotImplementedError

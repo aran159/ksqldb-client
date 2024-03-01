@@ -1,25 +1,27 @@
 [project]
-name = "ksqldb_client"
-version = "0.1.0"
+name = "ksqldb-client"
+version = "0.28.2a0"
 requires-python = ">=3.10"
 
 [tool.poetry]
-name = "ksqldb_client"
-version = "0.1.0"
+name = "ksqldb-client"
+version = "0.28.2a0"
 description = ""
-authors = ["Antonio Milán <antonio.milan@nextdigital.es>"]
+authors = ["Ander Aramburu <ander.aranfdz@gmail.com>"]
 readme = "README.md"
 packages = []
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 httpx = {extras = ["http2"], version = "^0.27.0"}
+pydantic = "^2.6.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.0"
 mypy = "^1.8.0"
 pytest = "^7.4.3"
 ipykernel = "^6.29.3"
+notebook = "^7.1.1"
 
 [tool.ruff]
 line-length = 140
@@ -59,10 +61,14 @@ line-ending = "lf"
     "E402",
     "E501",
     "SLF001",
+    "T201",
 ]
 
 [tool.mypy]
 ignore_missing_imports = true
+plugins = [
+  "pydantic.mypy"
+]
 
 [tool.black]
 line-length = 140
