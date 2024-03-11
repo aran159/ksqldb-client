@@ -1,11 +1,11 @@
 [project]
 name = "ksqldb-client"
-version = "0.28.2a0"
+version = "0.28.2a1"
 requires-python = ">=3.10"
 
 [tool.poetry]
 name = "ksqldb-client"
-version = "0.28.2a0"
+version = "0.28.2a1"
 description = ""
 authors = ["Ander Aramburu <ander.aranfdz@gmail.com>"]
 readme = "README.md"
@@ -15,6 +15,7 @@ packages = []
 python = ">=3.10,<3.13"
 httpx = {extras = ["http2"], version = "^0.27.0"}
 pydantic = "^2.6.3"
+pandas = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.0"
