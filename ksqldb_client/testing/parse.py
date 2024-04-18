@@ -27,8 +27,8 @@ def extract_columns_from_ksql_schema(schema: str) -> dict[str, str]:
     result: dict[str, str] = {}
     for part in parts:
         part_stripped = part.strip()
-        if re.search(r"STRUCT<.*>", part_stripped):
-            if match := re.search(r"`([^`]+)`\s+(STRUCT)<", part_stripped):
+        if re.search(r"(STRUCT|ARRAY)<.*>", part_stripped):
+            if match := re.search(r"`([^`]+)`\s+(STRUCT|ARRAY)<", part_stripped):
                 result.update({match.group(1): match.group(2)})
         elif match := re.search(r"`([^`]+)`\s+([A-Z]+)", part_stripped):
             result.update({match.group(1): match.group(2)})
@@ -51,6 +51,7 @@ KSQL_TO_PANDAS_TYPES = {
     "BIGINT": pd.Int64Dtype(),
     "DOUBLE": pd.Float64Dtype(),
     "DECIMAL": pd.Float64Dtype(),
+    "DATE": pd.DatetimeTZDtype(tz="utc"),
     "TIMESTAMP": pd.DatetimeTZDtype(tz="utc"),
     "ARRAY": "object",
     "MAP": "object",
@@ -66,15 +67,16 @@ def query_response_to_pandas(query_response: QueryResponse) -> pd.DataFrame:
     header = extract_header_from_query_response(query_response)
     rows = extract_rows_from_query_response(query_response)
 
-    columns = extract_columns_from_ksql_schema(header.header.schema_)
 
-    column_names = tuple(column_name.lower() for column_name in columns)
-    pandas_column_types = tuple(KSQL_TO_PANDAS_TYPES[ksql_column_type] for ksql_column_type in columns.values())
 
     data = tuple(row.row.columns for row in rows)
 
+    column_name_to_ksqldb_type_dict = extract_columns_from_ksql_schema(header.header.schema_)
+    column_names = tuple(column_name.lower() for column_name in column_name_to_ksqldb_type_dict)
+    pandas_column_types = tuple(KSQL_TO_PANDAS_TYPES[ksql_column_type] for ksql_column_type in column_name_to_ksqldb_type_dict.values())
+
     return pd.DataFrame(
-        dictionary_keys_to_lowercase(data),
+        dictionary_keys_to_lowercase_recursively(data),
         columns=column_names,
     ).astype(
         dict(
@@ -87,12 +89,12 @@ def query_response_to_pandas(query_response: QueryResponse) -> pd.DataFrame:
     )
 
 
-def dictionary_keys_to_lowercase(dict_: dict[str, Any] | tuple[Any, ...]) -> dict[str, Any] | tuple[Any, ...]:
+def dictionary_keys_to_lowercase_recursively(dict_: dict[str, Any] | tuple[Any, ...]) -> dict[str, Any] | tuple[Any, ...]:
     """Convert all dictionary keys to lowercase, including nested dictionaries and lists of dictionaries."""
     if isinstance(dict_, dict):
-        return {k.lower(): dictionary_keys_to_lowercase(v) for k, v in dict_.items()}
+        return {k.lower(): dictionary_keys_to_lowercase_recursively(v) for k, v in dict_.items()}
     if isinstance(dict_, tuple):
-        return tuple(dictionary_keys_to_lowercase(v) for v in dict_)
+        return tuple(dictionary_keys_to_lowercase_recursively(v) for v in dict_)
 
     return dict_
 
